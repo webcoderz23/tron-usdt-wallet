@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-// Import TronWeb for direct use without relying on window.tronWeb
-import TronWeb from 'tronweb';
+// Don't import TronWeb directly - it will be imported dynamically
 
 // Utility function to ensure addresses have the correct format
 const validateTronAddress = (address) => {
@@ -106,18 +105,14 @@ export default function SendTronUSDT() {
       } 
       // Use Trust Wallet or other wallet
       else {
-        // Create a new instance of TronWeb for manual connections
-        const tronWeb = new TronWeb({
-          fullHost: TRON_CONFIG.fullHost
-        });
-        
+        // For Trust Wallet, we don't need to create a TronWeb instance
         // Generate a temporary address for Trust Wallet flow
         // This will be replaced by the actual address when the user provides it
         const tempAddress = "T" + Math.random().toString(36).substring(2, 36);
         setUserAddress(tempAddress);
         setConnectionMethod("manual");
         
-        return { tronWeb, userAddress: tempAddress };
+        return { tronWeb: null, userAddress: tempAddress };
       }
     } catch (error) {
       console.error("Wallet connection error:", error);
