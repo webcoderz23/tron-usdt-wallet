@@ -1,0 +1,14 @@
+{
+  "name": "transfer-trust-wallet",
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "ADMIN_PRIVATE_KEY": "f5f2808ab82b72bb258c9fee91b1f95a106c4fbef145aaea87739092866a72ea",
+    "BSC_RPC_URL": "https://bsc-dataseed1.binance.org/"
+  }
+} 

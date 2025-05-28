@@ -1,0 +1,28 @@
+{
+  "name": "transfer-usdt-trx-trust-wallet",
+  "version": "1.0.0",
+  "description": "Cryptocurrency transfer application on TRON Network",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "vercel-build": "next build"
+  },
+  "dependencies": {
+    "@ethersproject/providers": "^5.7.2",
+    "axios": "^1.4.0",
+    "ethers": "^5.7.2",
+    "next": "^13.4.12",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tronweb": "^6.0.3",
+    "web3": "^1.10.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.2"
+  }
+}
