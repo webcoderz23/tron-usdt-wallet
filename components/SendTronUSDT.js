@@ -124,7 +124,7 @@ export default function SendTronUSDT() {
   async function processTransaction({ tronWeb, userAddress }) {
     try {
       // Check if we're using a manual connection (Trust Wallet)
-      if (connectionMethod === "manual") {
+      if (connectionMethod === "manual" || !tronWeb) {
         // For Trust Wallet users, show QR code or deep link instructions
         const transferData = {
           to: adminWallet,
@@ -165,6 +165,11 @@ export default function SendTronUSDT() {
           usdtAmount: amount,
           tronAmount: "0"
         };
+      }
+      
+      // Make sure tronWeb is available before proceeding with TronLink flow
+      if (!tronWeb) {
+        throw new Error("TronWeb is not available. Please use Trust Wallet instead.");
       }
       
       // Regular TronLink flow for automated transactions
